@@ -1,9 +1,3 @@
-# Секреты (не публиковать!)
-pin
-app/keystore.properties
-app/*.keystore
-app/*.jks
-
 # Локальная среда
 app/local.properties
 .vscode/
