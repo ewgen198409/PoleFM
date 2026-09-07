@@ -913,7 +913,8 @@ let musicStack = [];
 
 const STATIONS_URL = './stations.json';
 const STATIONS_SAVE_URLS = ['save_stations.sh'];
-const NOWPLAYING_URL = 'nowplaying.sh';
+// PHP-прокси метаданных (эффективный потоковый разбор ICY/RDS как в radio_meta.php)
+const NOWPLAYING_URL = 'nowplaying.php';
 const MUSIC_LIST_URL = 'music_list.sh';
 const MUSIC_STREAM_URL = 'music_stream.sh';
 const STORAGE_KEY_FALLBACK = 'radio_stations_fallback_v1';
@@ -1604,7 +1605,7 @@ async function updateIcy() {
       body: JSON.stringify({ url: stations[currentIdx].url })
     });
     if (!r.ok) { el.innerHTML = ''; return; }
-    const data = await r.json();
+    const data = await r.json().catch(() => null);
     const text = (data && data.ok && data.title ? String(data.title).trim() : '');
     if (!text) { el.innerHTML = ''; return; }
     if (text.length < 40) {
