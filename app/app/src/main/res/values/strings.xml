@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">PoleFM Radio</string>
+    <string name="channel_name">PoleFM Radio</string>
+    <string name="channel_description">Уведомление о работе радио в фоне</string>
+    <string name="notification_text">Радио работает в фоне</string>
+    <string name="action_stop">Стоп</string>
+    <string name="splash_logo_desc">Логотип PoleFM Radio</string>
+</resources>

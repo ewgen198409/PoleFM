@@ -1,0 +1,42 @@
+[
+  {
+    "name": "Русское Радио",
+    "url": "http://rusradio.hostingradio.ru/rusradio96.aacp"
+  },
+  {
+    "name": "Европа Плюс",
+    "url": "http://ep128.hostingradio.ru:8030/ep128"
+  },
+  {
+    "name": "Маруся FM",
+    "url": "https://air.unmixed.ru/marusyafm"
+  },
+  {
+    "name": "Дача FM",
+    "url": "http://listen.vdfm.ru:8000/dacha"
+  },
+  {
+    "name": "Hit FM",
+    "url": "http://hitfm.hostingradio.ru/hitfm96.aacp"
+  },
+  {
+    "name": "Mega FM",
+    "url": "https://mega.amgradio.ru/mega"
+  },
+  {
+    "name": "Disco-90x",
+    "url": "https://dfm-disc90.hostingradio.ru/disc9096.aacp"
+  },
+  {
+    "name": "Top40",
+    "url": "https://stream06.pcradio.app/Top_40-hi"
+  },
+  {
+    "name": "Супердискотека 90-х",
+    "url": "https://radiorecord.hostingradio.ru/sd9096.aacp"
+  },
+  {
+    "name": "Rap Classics Record",
+    "url": "https://radiorecord.hostingradio.ru/rapclassics96.aacp"
+  }
+]

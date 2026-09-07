@@ -1,0 +1,63 @@
+plugins {
+    id 'com.android.application'
+}
+
+// Load keystore properties from a separate file
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace 'com.polefm.radio'
+    compileSdk 34
+    buildToolsVersion "35.0.0"
+
+    defaultConfig {
+        applicationId "com.polefm.radio"
+        minSdk 21
+        targetSdk 34
+        versionCode 2
+        versionName "1.0"
+    }
+
+    signingConfigs {
+        release {
+            if (keystorePropertiesFile.exists()) {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+// Все выходные APK носят имя PoleFM.apk (release) / PoleFM-debug.apk (debug).
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def base = "PoleFM"
+        def suffix = variant.buildType == "release" ? "" : "-" + variant.buildType
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("${base}${suffix}.apk")
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+}

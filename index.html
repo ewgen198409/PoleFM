@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="icon" type="image/png" href="internet_radio_fm.png">
+<title>Radio Player</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg:        #1a1d21;
+    --surface:   #22262c;
+    --surface2:  #2a2f37;
+    --border:    #333840;
+    --accent:    #3d8bcd;
+    --accent2:   #5ba3e0;
+    --green:     #2ea043;
+    --red:       #da3633;
+    --yellow:    #d29922;
+    --text:      #cdd9e5;
+    --text2:     #768390;
+    --text3:     #4d5566;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Inter', sans-serif;
+    --radius:    8px;
+    --shadow:    0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 24px 16px;
+  }
+
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  header h1 {
+    font-family: var(--mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+  header span {
+    font-size: 11px;
+    color: var(--text2);
+    font-family: var(--mono);
+  }
+  .status-dot {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px;
+    color: var(--text2);
+    font-family: var(--mono);
+  }
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text3);
+    transition: background 0.3s;
+  }
+  .dot.playing { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse 2s infinite; }
+  .dot.paused  { background: var(--yellow); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .tab:hover { color: var(--text); background: var(--surface2); }
+  .tab.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  .tab.active:hover { background: var(--accent2); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Now Playing ── */
+  .now-playing {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+  .np-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text3);
+    margin-bottom: 12px;
+  }
+  .np-body {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .np-left {
+    flex: 1;
+    min-width: 0;
+  }
+  .np-right {
+    width: 160px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .np-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .np-url {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 4px;
+  }
+  .np-icy {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 14px;
+    min-height: 16px;
+  }
+  .np-icy-scroll {
+    display: inline-block;
+    animation: marquee 20s linear infinite;
+  }
+  .np-icy-scroll.short { animation: none; }
+  @keyframes marquee {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ── Progress bar ── */
+  .progress-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    width: 100%;
+  }
+  .time-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+    min-width: 36px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .progress-bar-wrap {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    position: relative;
+    cursor: pointer;
+    overflow: visible;
+  }
+  .progress-buffered {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--text3);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  .progress-played {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--accent);
+    border-radius: 3px;
+    width: 0%;
+    transition: width 0.1s linear;
+  }
+  .progress-thumb {
+    position: absolute;
+    top: 50%;
+    left: 0%;
+    transform: translate(-50%, -50%);
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    background: var(--accent2);
+    cursor: pointer;
+    transition: transform 0.15s, left 0.1s linear;
+    box-shadow: 0 0 4px rgba(0,0,0,0.4);
+  }
+  .progress-bar-wrap:hover .progress-thumb {
+    transform: translate(-50%, -50%) scale(1.4);
+  }
+  .buffer-status {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--yellow);
+    margin-bottom: 8px;
+    animation: pulse 1.5s infinite;
+  }
+
+  /* ── Equalizer canvas ── */
+  .eq-canvas-wrap {
+    width: 100%;
+    border-radius: var(--radius);
+    overflow: hidden;
+    height: 48px;
+  }
+  #eqCanvas {
+    width: 100%;
+    height: 48px;
+    display: block;
+  }
+
+  /* Volume */
+  .volume-row {
+    display: flex; align-items: center; gap: 6px;
+    width: 100%;
+  }
+  .vol-fill-wrap {
+    display: flex; align-items: center;
+    flex: 1;
+    position: relative;
+  }
+  .vol-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    flex: 1;
+    height: 20px;
+    overflow: hidden;
+  }
+  .vol-bar {
+    flex: 1;
+    border-radius: 1px;
+    background: var(--border);
+    transition: background 0.2s, height 0.2s;
+    min-height: 3px;
+  }
+  .vol-bar.filled { background: var(--accent); }
+  .vol-bar.filled.high { background: var(--green); }
+  .vol-bar.filled.loud { background: var(--yellow); }
+  .vol-bar.filled.max  { background: var(--red); }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius);
+    padding: 8px 16px;
+    font-family: var(--mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--border); border-color: var(--accent); color: var(--accent2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { background: var(--accent2); }
+  .btn.danger { border-color: var(--red); color: var(--red); }
+  .btn.danger:hover { background: var(--red); color: #fff; }
+  .btn.icon { padding: 8px 10px; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .vol-icon { font-size: 12px; color: var(--text2); flex-shrink: 0; }
+  .vol-value {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+    min-width: 26px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+  input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+  }
+
+  /* Station List ── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text2);
+  }
+
+  .station-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 20px;
+    max-height: calc(100vh - 380px);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+  .station-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .station-item:hover { border-color: var(--accent); background: var(--surface2); }
+  .station-item.active {
+    border-color: var(--accent);
+    background: linear-gradient(90deg, rgba(61,139,205,0.08) 0%, transparent 100%);
+  }
+  .station-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    min-width: 20px;
+  }
+  .station-info { flex: 1; min-width: 0; }
+  .station-name {
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .station-url {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+  .station-actions {
+    display: flex; gap: 4px;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .station-item:hover .station-actions { opacity: 1; }
+  .icon-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    border-radius: 5px;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent2); }
+  .icon-btn.del:hover { border-color: var(--red); color: var(--red); }
+  .play-icon {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    color: #fff;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .station-item:hover .play-icon,
+  .station-item.active .play-icon { opacity: 1; }
+  .station-item.active .play-icon { background: var(--green); animation: pulse 2s infinite; }
+
+  .station-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    margin-top: 3px;
+    opacity: 0.8;
+  }
+  .add-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 20px;
+  }
+  .form-row {
+    display: flex; gap: 8px; margin-bottom: 8px;
+  }
+  .form-row:last-child { margin-bottom: 0; }
+  input[type=text], input[type=password] {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type=text]:focus, input[type=password]:focus { border-color: var(--accent); }
+  input[type=text]::placeholder, input[type=password]::placeholder { color: var(--text3); }
+
+  /* ── Music File Manager ── */
+  .music-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .crumb {
+    color: var(--accent2);
+    cursor: pointer;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .crumb:hover { background: var(--surface2); }
+  .crumb-sep { color: var(--text3); }
+  .crumb-current { color: var(--text); }
+
+  .music-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 20px;
+    max-height: calc(100vh - 380px);
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+  }
+  .music-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .music-item:hover { border-color: var(--accent); background: var(--surface2); }
+  .music-item.active {
+    border-color: var(--accent);
+    background: linear-gradient(90deg, rgba(61,139,205,0.08) 0%, transparent 100%);
+  }
+  .music-icon {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+  }
+  .music-item.dir .music-icon { color: var(--yellow); }
+  .music-item.file .music-icon { color: var(--accent2); }
+  .music-item.active .music-icon { background: var(--green); color: #fff; border-color: var(--green); }
+  .music-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .music-size {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    flex-shrink: 0;
+  }
+  .music-play {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    color: #fff;
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .music-item:hover .music-play,
+  .music-item.active .music-play { opacity: 1; }
+  .music-item.active .music-play { background: var(--green); animation: pulse 2s infinite; }
+
+  .music-up {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .music-up .btn { padding: 6px 12px; font-size: 11px; }
+
+  /* ── Empty state ── */
+  .empty {
+    text-align: center;
+    padding: 32px;
+    color: var(--text3);
+    font-family: var(--mono);
+    font-size: 12px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 420px;
+    margin: 16px;
+    transform: translateY(12px) scale(0.98);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal {
+    transform: translateY(0) scale(1);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-title {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text2);
+    font-size: 16px;
+    cursor: pointer;
+    width: 28px; height: 28px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+  }
+  .modal-close:hover { background: var(--surface2); color: var(--text); }
+  .modal-body {
+    padding: 20px;
+  }
+  .modal-body p {
+    color: var(--text2);
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 4px;
+  }
+  .modal-body .modal-station-name {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .modal-body .modal-station-url {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    word-break: break-all;
+    margin-top: 4px;
+  }
+  .modal-form-row {
+    margin-bottom: 12px;
+  }
+  .modal-form-row:last-child { margin-bottom: 0; }
+  .modal-form-row label {
+    display: block;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text3);
+    margin-bottom: 6px;
+  }
+  .modal-form-row input[type=text], .modal-form-row input[type=password] {
+    width: 100%;
+  }
+  .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 600px) {
+    body { padding: 12px 10px; }
+    .station-actions { opacity: 1; }
+    .np-body { gap: 10px; }
+    .np-right { width: 130px; }
+    .controls { gap: 5px; }
+    .btn { padding: 7px 8px; font-size: 10px; gap: 3px; }
+    .vol-value { font-size: 9px; min-width: 22px; }
+    .tab { padding: 8px 10px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+<header>
+  <div class="logo">📻</div>
+  <div>
+    <h1>Browser Radio</h1>
+    <span>Локальное воспроизведение в браузере</span>
+  </div>
+  <div class="status-dot">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">—</span>
+  </div>
+</header>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" id="tabRadio" onclick="switchTab('radio')">📡 Онлайн радио</button>
+  <button class="tab" id="tabMusic" onclick="switchTab('music')">🎵 Моя музыка</button>
+</div>
+
+<!-- Now Playing (общий) -->
+<div class="now-playing">
+  <div class="np-label">▶ Now Playing</div>
+  <div class="np-body">
+    <div class="np-left">
+      <div class="np-title" id="npTitle">Нет воспроизведения</div>
+      <div class="np-url" id="npUrl">—</div>
+      <div class="np-icy" id="npIcy"></div>
+      <div class="progress-row" style="display:none;">
+        <span class="time-label" id="timeCurrent">00:00</span>
+        <div class="progress-bar-wrap" id="progressBarWrap">
+          <div class="progress-buffered" id="progressBuffered"></div>
+          <div class="progress-played" id="progressPlayed"></div>
+          <div class="progress-thumb" id="progressThumb"></div>
+        </div>
+        <span class="time-label" id="timeTotal">00:00</span>
+      </div>
+      <div class="buffer-status" id="bufferStatus" style="display:none;">⏳ Буферизация...</div>
+      <div class="controls">
+        <button class="btn primary" onclick="mpcCmd('play')">▶ Play</button>
+        <button class="btn" onclick="mpcCmd('pause')">⏸ Pause</button>
+        <button class="btn" onclick="mpcCmd('stop')">⏹ Stop</button>
+      </div>
+    </div>
+    <div class="np-right">
+      <div class="eq-canvas-wrap">
+        <canvas id="eqCanvas"></canvas>
+      </div>
+      <div class="volume-row">
+        <span class="vol-icon">🔈</span>
+        <div class="vol-fill-wrap">
+          <div class="vol-bars" id="volBars"></div>
+        </div>
+        <span class="vol-value" id="volVal">80%</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Panel: Онлайн радио -->
+<div class="tab-panel active" id="panelRadio">
+  <!-- Station List -->
+  <div class="section-header">
+    <span class="section-title">Радиостанции</span>
+    <span id="stationCount" style="font-family:var(--mono);font-size:11px;color:var(--text3)"></span>
+  </div>
+  <div class="station-list" id="stationList"></div>
+
+  <!-- Add Station -->
+  <div class="section-header" style="margin-top:4px;">
+    <span class="section-title">Добавить станцию</span>
+  </div>
+  <div class="add-form">
+    <div class="form-row">
+      <input type="text" id="addName" placeholder="Название (напр. Русское Радио)" />
+    </div>
+    <div class="form-row">
+      <input type="text" id="addUrl" placeholder="URL потока (http://...)" />
+      <button class="btn primary" onclick="addStation()">+ Добавить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Panel: Моя музыка -->
+<div class="tab-panel" id="panelMusic">
+  <div class="section-header">
+    <span class="section-title">Файловый менеджер</span>
+    <span id="musicCount" style="font-family:var(--mono);font-size:11px;color:var(--text3)"></span>
+  </div>
+  <div class="music-breadcrumb" id="musicBreadcrumb"></div>
+  <div class="music-up">
+    <button class="btn" id="btnUp" onclick="musicGoUp()" style="display:none;">⬆ Наверх</button>
+  </div>
+  <div class="music-list" id="musicList"></div>
+</div>
+
+<!-- Modal: Редактирование станции -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">✎ Редактировать станцию</div>
+      <button class="modal-close" onclick="closeModal('editModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-form-row">
+        <label for="editName">Название</label>
+        <input type="text" id="editName" placeholder="Название станции" />
+      </div>
+      <div class="modal-form-row">
+        <label for="editUrl">URL потока</label>
+        <input type="text" id="editUrl" placeholder="http://..." />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('editModal')">Отмена</button>
+      <button class="btn primary" onclick="saveEditStation()">💾 Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Удаление станции -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🗑 Удалить станцию</div>
+      <button class="modal-close" onclick="closeModal('deleteModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Вы уверены, что хотите удалить станцию</p>
+      <p class="modal-station-name" id="deleteStationName"></p>
+      <p class="modal-station-url" id="deleteStationUrl"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('deleteModal')">Отмена</button>
+      <button class="btn danger" onclick="confirmDeleteStation()">🗑 Удалить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Запрос PIN-кода -->
+<div class="modal-overlay" id="pinModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🔒 Введите PIN-код</div>
+      <button class="modal-close" onclick="cancelPin()" title="Отмена">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Изменение списка радиостанций защищено. Введите PIN-код.</p>
+      <div class="modal-form-row">
+        <label for="pinInput">PIN-код</label>
+        <input type="password" id="pinInput" placeholder="••••••" inputmode="numeric" autocomplete="off" />
+      </div>
+      <p id="pinError" style="color:var(--danger,#ff6b6b);min-height:16px;font-size:12px;"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="cancelPin()">Отмена</button>
+      <button class="btn primary" onclick="confirmPin()">✓ Подтвердить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Информационное сообщение -->
+<div class="modal-overlay" id="messageModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="messageModalTitle">Сообщение</div>
+      <button class="modal-close" onclick="closeMessageModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="messageModalText" style="white-space:pre-wrap;"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn primary" onclick="closeMessageModal()">OK</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Общие переменные ──
+let stations = [];
+let currentIdx = -1;
+let currentMode = 'radio'; // 'radio' | 'music'
+let currentMusicPath = '';
+let currentMusicFile = null;
+let currentMusicItems = [];
+let musicStack = [];
+
+const STATIONS_URL = './stations.json';
+const STATIONS_SAVE_URLS = ['save_stations.sh'];
+const NOWPLAYING_URL = 'nowplaying.sh';
+const MUSIC_LIST_URL = 'music_list.sh';
+const MUSIC_STREAM_URL = 'music_stream.sh';
+const STORAGE_KEY_FALLBACK = 'radio_stations_fallback_v1';
+const STORAGE_KEY_VOLUME = 'radio_volume_v1';
+const VOL_BARS = 20;
+const EQ_BARS = 15;
+const canvas = document.getElementById('eqCanvas');
+const ctx2d = canvas.getContext('2d');
+const peaks = new Array(EQ_BARS).fill(0);
+let currentVol = (() => {
+  try {
+    const v = parseInt(localStorage.getItem(STORAGE_KEY_VOLUME), 10);
+    return (v >= 0 && v <= 100) ? v : 50;
+  } catch (_) {
+    return 50;
+  }
+})();
+let playbackTimer = null;
+let audioCtx = null;
+let analyser = null;
+let audioSrc = null;
+let animFrame = null;
+let isBuffering = false;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 4;
+
+const audioEl = document.createElement('audio');
+audioEl.crossOrigin = 'anonymous';
+audioEl.preload = 'none';
+audioEl.style.display = 'none';
+document.body.appendChild(audioEl);
+
+// ── Вкладки ──
+function switchTab(tab) {
+  currentMode = tab;
+  document.getElementById('tabRadio').classList.toggle('active', tab === 'radio');
+  document.getElementById('tabMusic').classList.toggle('active', tab === 'music');
+  document.getElementById('panelRadio').classList.toggle('active', tab === 'radio');
+  document.getElementById('panelMusic').classList.toggle('active', tab === 'music');
+  const progressRow = document.querySelector('.progress-row');
+  if (progressRow) progressRow.style.display = (tab === 'music') ? 'flex' : 'none';
+  if (tab === 'music') loadMusicDir('');
+  else updateProgress();
+}
+
+// ── Станции ──
+function defaultStations() {
+  return [
+    { name: 'Русское Радио', url: 'http://rusradio.hostingradio.ru/rusradio96.aacp' },
+    { name: 'Европа Плюс', url: 'http://ep128.hostingradio.ru:8030/ep128' },
+    { name: 'Радио Рекорд', url: 'http://record128.hostingradio.ru:8030/record128' }
+  ];
+}
+
+async function loadStations() {
+  if (location.protocol === 'file:') {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_FALLBACK);
+      const parsed = raw ? JSON.parse(raw) : null;
+      stations = Array.isArray(parsed) && parsed.length ? parsed : defaultStations();
+    } catch (_) {
+      stations = defaultStations();
+    }
+    renderStations();
+    return;
+  }
+
+  try {
+    const r = await fetch(STATIONS_URL, { cache: 'no-store' });
+    if (!r.ok) throw new Error('stations.json unavailable');
+    const parsed = await r.json();
+    stations = Array.isArray(parsed) ? parsed : defaultStations();
+    localStorage.setItem(STORAGE_KEY_FALLBACK, JSON.stringify(stations));
+  } catch (_) {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_FALLBACK);
+      const parsed = raw ? JSON.parse(raw) : null;
+      stations = Array.isArray(parsed) && parsed.length ? parsed : defaultStations();
+    } catch (_) {
+      stations = defaultStations();
+    }
+  }
+  renderStations();
+}
+
+async function saveStations(pin, st) {
+  const toSave = st || stations;
+  localStorage.setItem(STORAGE_KEY_FALLBACK, JSON.stringify(toSave));
+  if (location.protocol === 'file:') return true;
+  for (const url of STATIONS_SAVE_URLS) {
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (pin) headers['X-Pin'] = String(pin);
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(toSave, null, 2)
+      });
+      if (!resp.ok) continue;
+      try {
+        const data = await resp.json();
+        if (data && data.ok === true) return true;
+        if (data && data.error === 'invalid_pin') return 'invalid_pin';
+        if (data && data.error === 'pin_required') return 'pin_required';
+        if (data && data.error === 'pin_not_configured') return 'pin_not_configured';
+      } catch (_) {
+        continue;
+      }
+    } catch (_) {}
+  }
+  return false;
+}
+
+function saveResultMessage(res) {
+  if (res === true) return null;
+  if (res === 'invalid_pin') return 'Неверный PIN-код — изменения не сохранены';
+  if (res === 'pin_required') return 'Не получен PIN-код — изменения не сохранены';
+  if (res === 'pin_not_configured') return 'PIN-код не настроен на сервере (файл /www/pin)';
+  return 'Не удалось сохранить stations.json на сервере';
+}
+
+async function mpcCmd(cmd) {
+  if (cmd === 'play') {
+    if (currentMode === 'radio' && currentIdx >= 0) {
+      await playStation(currentIdx);
+    } else if (currentMode === 'music' && currentMusicFile) {
+      await playMusic(currentMusicFile.name);
+    }
+  } else if (cmd === 'pause') {
+    audioEl.pause();
+    updateStatus();
+  } else if (cmd === 'stop') {
+    stopPlayback();
+  }
+}
+
+async function playStation(idx) {
+  const s = stations[idx];
+  if (!s) return;
+  const prevUrl = currentIdx >= 0 && stations[currentIdx] ? stations[currentIdx].url : '';
+  if (prevUrl && prevUrl !== s.url) await clearNowPlayingCache(prevUrl);
+  // Очищаем кэш новой станции, чтобы не показывать старую информацию
+  await clearNowPlayingCache(s.url);
+  currentIdx = idx;
+  currentMode = 'radio';
+  currentMusicFile = null;
+  reconnectAttempts = 0;
+  isBuffering = true;
+  renderStations();
+  renderMusicList();
+  document.getElementById('npIcy').innerHTML = '';
+  audioEl.src = s.url;
+  audioEl.volume = currentVol / 100;
+  updateStatus();
+  try {
+    await ensureAudioGraph();
+    audioEl.load();
+    await new Promise((resolve) => setTimeout(resolve, 1800));
+    await audioEl.play();
+    isBuffering = false;
+    startEqDraw();
+    startPlaybackTimer();
+    updateIcy();
+  } catch (_) {
+    scheduleReconnect();
+  }
+  updateStatus();
+}
+
+function renderVolBars(val) {
+  const container = document.getElementById('volBars');
+  if (!container) return;
+  const filled = Math.round((val / 100) * VOL_BARS);
+  let html = '';
+  for (let i = 0; i < VOL_BARS; i++) {
+    const pct = ((i + 1) / VOL_BARS) * 100;
+    const h = 6 + (i / VOL_BARS) * 14;
+    let cls = 'vol-bar';
+    if (i < filled) {
+      cls += ' filled';
+      if (pct > 90) cls += ' max';
+      else if (pct > 75) cls += ' loud';
+      else if (pct > 55) cls += ' high';
+    }
+    cls += `" style="height:${h}px`;
+    html += `<div class="${cls}"></div>`;
+  }
+  container.innerHTML = html;
+  container.onclick = (e) => {
+    const rect = container.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    const vol = Math.round(Math.max(0, Math.min(100, ratio * 100)));
+    setVolume(vol);
+  };
+  document.getElementById('volVal').textContent = val + '%';
+}
+
+function setVolume(val) {
+  currentVol = val;
+  audioEl.volume = val / 100;
+  renderVolBars(val);
+  try {
+    localStorage.setItem(STORAGE_KEY_VOLUME, String(val));
+  } catch (_) {}
+}
+
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  canvas.width = wrap.getBoundingClientRect().width || wrap.clientWidth;
+  canvas.height = 48;
+}
+
+function clearEq() {
+  resizeCanvas();
+  ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+  const w = canvas.width;
+  const h = canvas.height;
+  const barW = Math.floor((w - (EQ_BARS - 1) * 3) / EQ_BARS);
+  for (let i = 0; i < EQ_BARS; i++) {
+    ctx2d.fillStyle = '#333840';
+    ctx2d.beginPath();
+    ctx2d.roundRect(i * (barW + 3), h - 3, barW, 3, 2);
+    ctx2d.fill();
+  }
+}
+
+async function ensureAudioGraph() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    analyser.smoothingTimeConstant = 0.75;
+    analyser.minDecibels = -85;
+    analyser.maxDecibels = -10;
+    audioSrc = audioCtx.createMediaElementSource(audioEl);
+    audioSrc.connect(analyser);
+    analyser.connect(audioCtx.destination);
+  }
+  if (audioCtx.state === 'suspended') await audioCtx.resume();
+}
+
+function startEqDraw() {
+  if (!analyser) return;
+  if (animFrame) cancelAnimationFrame(animFrame);
+  const bufLen = analyser.frequencyBinCount;
+  const data = new Uint8Array(bufLen);
+  const bands = [];
+  for (let i = 0; i < EQ_BARS; i++) {
+    const start = Math.floor(bufLen * Math.pow(i / EQ_BARS, 2));
+    const end = Math.floor(bufLen * Math.pow((i + 1) / EQ_BARS, 2));
+    bands.push({ start, end: Math.max(end, start + 1) });
+  }
+  const boost = bands.map((_, i) => 1 + (i / EQ_BARS) * 0.8);
+  function frame() {
+    animFrame = requestAnimationFrame(frame);
+    analyser.getByteFrequencyData(data);
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx2d.clearRect(0, 0, w, h);
+    const barW = Math.floor((w - (EQ_BARS - 1) * 3) / EQ_BARS);
+    for (let i = 0; i < EQ_BARS; i++) {
+      const band = bands[i];
+      let sum = 0;
+      for (let j = band.start; j < band.end; j++) sum += data[j];
+      const avg = sum / (band.end - band.start);
+      const boosted = Math.min(255, avg * boost[i]);
+      const barH = Math.max(3, (boosted / 255) * h);
+      if (barH > peaks[i]) peaks[i] = barH;
+      else peaks[i] = Math.max(3, peaks[i] - 2.5);
+      const x = i * (barW + 3);
+      const ratio = barH / h;
+      ctx2d.fillStyle = ratio > 0.75 ? '#5ba3e0' : ratio > 0.45 ? '#3d8bcd' : '#2a5f8f';
+      ctx2d.beginPath();
+      ctx2d.roundRect(x, h - barH, barW, barH, [2, 2, 0, 0]);
+      ctx2d.fill();
+      ctx2d.fillStyle = 'rgba(91,163,224,0.8)';
+      ctx2d.beginPath();
+      ctx2d.roundRect(x, h - peaks[i] - 2, barW, 2, 1);
+      ctx2d.fill();
+    }
+  }
+  frame();
+}
+
+function stopPlayback() {
+  const prevUrl = currentIdx >= 0 && stations[currentIdx] ? stations[currentIdx].url : '';
+  if (prevUrl) void clearNowPlayingCache(prevUrl);
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  isBuffering = false;
+  reconnectAttempts = 0;
+  audioEl.pause();
+  audioEl.src = '';
+  stopPlaybackTimer();
+  if (animFrame) {
+    cancelAnimationFrame(animFrame);
+    animFrame = null;
+  }
+  clearEq();
+  currentIdx = -1;
+  currentMusicFile = null;
+  renderStations();
+  renderMusicList();
+  updateStatus();
+  document.getElementById('npIcy').innerHTML = '';
+}
+
+function scheduleReconnect() {
+  if (currentMode !== 'radio' || currentIdx < 0 || reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) return;
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  reconnectAttempts++;
+  isBuffering = true;
+  updateStatus();
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (currentIdx >= 0) playStation(currentIdx);
+  }, Math.min(5000, 1200 * reconnectAttempts));
+}
+
+async function clearNowPlayingCache(url) {
+  if (!url) return;
+  try {
+    await fetch(NOWPLAYING_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'clear', url })
+    });
+  } catch (_) {}
+}
+
+function updateStatus() {
+  const dot = document.getElementById('statusDot');
+  const txt = document.getElementById('statusText');
+  const npTitle = document.getElementById('npTitle');
+  const npUrl = document.getElementById('npUrl');
+  if (isBuffering && currentIdx >= 0 && stations[currentIdx]) {
+    dot.className = 'dot paused';
+    txt.textContent = 'buffering...';
+    npTitle.textContent = stations[currentIdx].name;
+    npUrl.textContent = stations[currentIdx].url;
+    return;
+  }
+  if (isBuffering && currentMusicFile) {
+    dot.className = 'dot paused';
+    txt.textContent = 'buffering...';
+    npTitle.textContent = currentMusicFile.name;
+    npUrl.textContent = currentMusicFile.path;
+    return;
+  }
+  if (!audioEl.paused && currentIdx >= 0 && stations[currentIdx]) {
+    dot.className = 'dot playing';
+    txt.textContent = 'playing';
+    npTitle.textContent = stations[currentIdx].name;
+    npUrl.textContent = stations[currentIdx].url;
+  } else if (!audioEl.paused && currentMusicFile) {
+    dot.className = 'dot playing';
+    txt.textContent = 'playing';
+    npTitle.textContent = currentMusicFile.name;
+    npUrl.textContent = currentMusicFile.path;
+  } else if (audioEl.paused && currentIdx >= 0 && stations[currentIdx]) {
+    dot.className = 'dot paused';
+    txt.textContent = 'paused';
+    npTitle.textContent = stations[currentIdx].name;
+    npUrl.textContent = stations[currentIdx].url;
+  } else if (audioEl.paused && currentMusicFile) {
+    dot.className = 'dot paused';
+    txt.textContent = 'paused';
+    npTitle.textContent = currentMusicFile.name;
+    npUrl.textContent = currentMusicFile.path;
+  } else {
+    dot.className = 'dot';
+    txt.textContent = 'stopped';
+    npTitle.textContent = 'Нет воспроизведения';
+    npUrl.textContent = '—';
+    document.getElementById('npIcy').innerHTML = '';
+  }
+}
+
+function startPlaybackTimer() {
+  stopPlaybackTimer();
+  playbackTimer = setInterval(updateStationTimer, 1000);
+}
+
+function stopPlaybackTimer() {
+  if (playbackTimer) {
+    clearInterval(playbackTimer);
+    playbackTimer = null;
+  }
+}
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+function updateStationTimer() {
+  if (currentIdx >= 0) {
+    const el = document.getElementById(`station-meta-${currentIdx}`);
+    if (el) el.textContent = formatTime(Math.floor(audioEl.currentTime || 0));
+  }
+  updateProgress();
+}
+
+function updateProgress() {
+  const wrap = document.getElementById('progressBarWrap');
+  const played = document.getElementById('progressPlayed');
+  const buffered = document.getElementById('progressBuffered');
+  const thumb = document.getElementById('progressThumb');
+  const cur = document.getElementById('timeCurrent');
+  const total = document.getElementById('timeTotal');
+  const bufStatus = document.getElementById('bufferStatus');
+  if (!wrap || !played || !buffered || !thumb || !cur || !total) return;
+
+  if (currentMode === 'radio' || !currentMusicFile) {
+    played.style.width = '0%';
+    buffered.style.width = '0%';
+    thumb.style.left = '0%';
+    cur.textContent = '00:00';
+    total.textContent = '00:00';
+    if (bufStatus) bufStatus.style.display = 'none';
+    return;
+  }
+
+  const dur = audioEl.duration;
+  const curTime = audioEl.currentTime;
+
+  if (isFinite(dur) && dur > 0) {
+    const playedPct = (curTime / dur) * 100;
+    played.style.width = playedPct + '%';
+    thumb.style.left = playedPct + '%';
+    cur.textContent = formatTime(Math.floor(curTime));
+    total.textContent = formatTime(Math.floor(dur));
+
+    // Отображение буферизованной части
+    let bufferedPct = 0;
+    try {
+      if (audioEl.buffered && audioEl.buffered.length > 0) {
+        // Находим диапазон буфера, содержащий текущую позицию
+        for (let i = 0; i < audioEl.buffered.length; i++) {
+          const start = audioEl.buffered.start(i);
+          const end = audioEl.buffered.end(i);
+          if (curTime >= start && curTime <= end) {
+            bufferedPct = (end / dur) * 100;
+            break;
+          }
+        }
+        // Если не нашли — берём последний конец буфера
+        if (bufferedPct === 0) {
+          bufferedPct = (audioEl.buffered.end(audioEl.buffered.length - 1) / dur) * 100;
+        }
+      }
+    } catch (_) {}
+    buffered.style.width = bufferedPct + '%';
+
+    // Индикатор буферизации
+    if (bufStatus) {
+      if (isBuffering) {
+        bufStatus.style.display = 'block';
+        bufStatus.textContent = '⏳ Буферизация...';
+      } else if (bufferedPct - playedPct < 5 && curTime < dur - 1) {
+        bufStatus.style.display = 'block';
+        bufStatus.textContent = '⏳ Загрузка...';
+      } else {
+        bufStatus.style.display = 'none';
+      }
+    }
+  } else {
+    played.style.width = '0%';
+    buffered.style.width = '0%';
+    thumb.style.left = '0%';
+    cur.textContent = formatTime(Math.floor(curTime));
+    total.textContent = '00:00';
+    if (bufStatus) bufStatus.style.display = isBuffering ? 'block' : 'none';
+  }
+}
+
+function seekTo(val) {
+  if (currentMode === 'radio' || !currentMusicFile) return;
+  const v = parseFloat(val);
+  if (isFinite(v) && v >= 0 && isFinite(audioEl.duration) && audioEl.duration > 0) {
+    audioEl.currentTime = v;
+    document.getElementById('timeCurrent').textContent = formatTime(Math.floor(v));
+  }
+}
+
+// Клик/перетаскивание по кастомному прогресс-бару
+function initProgressBar() {
+  const wrap = document.getElementById('progressBarWrap');
+  if (!wrap) return;
+  let isDragging = false;
+
+  function seekFromEvent(e) {
+    if (currentMode === 'radio' || !currentMusicFile) return;
+    if (!isFinite(audioEl.duration) || audioEl.duration <= 0) return;
+    const rect = wrap.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+    const ratio = Math.max(0, Math.min(1, x / rect.width));
+    const newTime = ratio * audioEl.duration;
+    audioEl.currentTime = newTime;
+    document.getElementById('timeCurrent').textContent = formatTime(Math.floor(newTime));
+    updateProgress();
+  }
+
+  wrap.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    seekFromEvent(e);
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) seekFromEvent(e);
+  });
+  document.addEventListener('mouseup', () => { isDragging = false; });
+
+  // Touch для мобильных
+  wrap.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    seekFromEvent(e);
+    e.preventDefault();
+  }, { passive: false });
+  wrap.addEventListener('touchmove', (e) => {
+    if (isDragging) seekFromEvent(e);
+    e.preventDefault();
+  }, { passive: false });
+  wrap.addEventListener('touchend', () => { isDragging = false; });
+}
+
+function renderStations() {
+  const list = document.getElementById('stationList');
+  const cnt  = document.getElementById('stationCount');
+  cnt.textContent = stations.length + ' станц.';
+
+  if (stations.length === 0) {
+    list.innerHTML = '<div class="empty">Нет станций. Добавьте первую ↓</div>';
+    return;
+  }
+
+  list.innerHTML = stations.map((s, i) => `
+    <div class="station-item ${i === currentIdx && currentMode === 'radio' ? 'active' : ''}" onclick="playStation(${i})">
+      <span class="station-num">${String(i+1).padStart(2,'0')}</span>
+      <div class="play-icon">${i === currentIdx && currentMode === 'radio' ? '♪' : '▶'}</div>
+      <div class="station-info">
+        <div class="station-name">${escHtml(s.name)}</div>
+        <div class="station-url">${escHtml(s.url)}</div>
+        ${i === currentIdx && currentMode === 'radio' ? `<div class="station-meta" id="station-meta-${i}">—</div>` : ''}
+      </div>
+      <div class="station-actions" onclick="event.stopPropagation()">
+        <div class="icon-btn" onclick="editStation(${i})" title="Редактировать">✎</div>
+        <div class="icon-btn del" onclick="deleteStation(${i})" title="Удалить">✕</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addStation() {
+  const name = document.getElementById('addName').value.trim();
+  const url  = document.getElementById('addUrl').value.trim();
+  if (!name || !url) return;
+  if (!url.startsWith('http')) return;
+  requestPin(async (pin) => {
+    const tentative = stations.concat([{ name, url }]);
+    const res = await saveStations(pin, tentative);
+    if (res === true) stations = tentative;
+    document.getElementById('addName').value = '';
+    document.getElementById('addUrl').value = '';
+    renderStations();
+    const msg = saveResultMessage(res);
+    if (msg) showMessage(msg, 'Не удалось сохранить');
+  });
+}
+
+// ── Модальные окна ──
+let editIdx = -1;
+let deleteIdx = -1;
+
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ── Запрос PIN-кода ──
+let pinCallback = null;
+
+function requestPin(cb) {
+  pinCallback = cb;
+  const input = document.getElementById('pinInput');
+  if (input) input.value = '';
+  const err = document.getElementById('pinError');
+  if (err) err.textContent = '';
+  openModal('pinModal');
+  setTimeout(() => { if (input) input.focus(); }, 60);
+}
+
+function cancelPin() {
+  pinCallback = null;
+  closeModal('pinModal');
+}
+
+function confirmPin() {
+  const input = document.getElementById('pinInput');
+  const pin = input ? input.value.trim() : '';
+  const cb = pinCallback;
+  pinCallback = null;
+  closeModal('pinModal');
+  if (cb) cb(pin);
+}
+
+// ── Информационное сообщение ──
+function showMessage(text, title) {
+  const t = document.getElementById('messageModalTitle');
+  const m = document.getElementById('messageModalText');
+  if (t) t.textContent = title || 'Сообщение';
+  if (m) m.textContent = text || '';
+  openModal('messageModal');
+}
+
+function closeMessageModal() {
+  closeModal('messageModal');
+}
+
+function deleteStation(idx) {
+  const s = stations[idx];
+  if (!s) return;
+  deleteIdx = idx;
+  document.getElementById('deleteStationName').textContent = s.name;
+  document.getElementById('deleteStationUrl').textContent = s.url;
+  openModal('deleteModal');
+}
+
+async function confirmDeleteStation() {
+  const idx = deleteIdx;
+  if (idx < 0 || idx >= stations.length) return;
+  closeModal('deleteModal');
+  requestPin(async (pin) => {
+    const tentative = stations.filter((_, i) => i !== idx);
+    const res = await saveStations(pin, tentative);
+    if (res === true) {
+      if (currentIdx === idx) stopPlayback();
+      else if (currentIdx > idx) currentIdx--;
+      stations = tentative;
+    }
+    renderStations();
+    const msg = saveResultMessage(res);
+    if (msg) showMessage(msg, 'Не удалось удалить');
+  });
+}
+
+function editStation(idx) {
+  const s = stations[idx];
+  if (!s) return;
+  editIdx = idx;
+  document.getElementById('editName').value = s.name;
+  document.getElementById('editUrl').value = s.url;
+  openModal('editModal');
+  document.getElementById('editName').focus();
+}
+
+async function saveEditStation() {
+  const idx = editIdx;
+  if (idx < 0 || idx >= stations.length) return;
+  const name = document.getElementById('editName').value.trim();
+  const url  = document.getElementById('editUrl').value.trim();
+  if (!name || !url) return;
+  if (!url.startsWith('http')) return;
+  closeModal('editModal');
+  requestPin(async (pin) => {
+    const tentative = stations.map((s, i) => i === idx ? { name, url } : s);
+    const res = await saveStations(pin, tentative);
+    if (res === true) stations = tentative;
+    renderStations();
+    const msg = saveResultMessage(res);
+    if (msg) showMessage(msg, 'Не удалось сохранить');
+  });
+}
+
+async function updateIcy() {
+  const el = document.getElementById('npIcy');
+  if (currentMode !== 'radio' || currentIdx < 0 || !stations[currentIdx]) { el.innerHTML = ''; return; }
+  try {
+    const r = await fetch(NOWPLAYING_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: stations[currentIdx].url })
+    });
+    if (!r.ok) { el.innerHTML = ''; return; }
+    const data = await r.json();
+    const text = (data && data.ok && data.title ? String(data.title).trim() : '');
+    if (!text) { el.innerHTML = ''; return; }
+    if (text.length < 40) {
+      el.innerHTML = `<span>${escHtml(text)}</span>`;
+    } else {
+      const doubled = escHtml(text) + '&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;' + escHtml(text) + '&nbsp;&nbsp;&nbsp;·&nbsp;&nbsp;&nbsp;';
+      el.innerHTML = `<span class="np-icy-scroll">${doubled}</span>`;
+    }
+  } catch (_) {
+    el.innerHTML = '';
+  }
+}
+
+function escHtml(s) {
+  const amp = String.fromCharCode(38);
+  return s.replace(/&/g, amp + 'amp;').replace(/</g, amp + 'lt;').replace(/>/g, amp + 'gt;').replace(/"/g, amp + 'quot;');
+}
+
+// ── Музыка: файловый менеджер ──
+function encodePath(p) {
+  return encodeURIComponent(p).replace(/%2F/g, '/');
+}
+
+async function loadMusicDir(path) {
+  currentMusicPath = path || '';
+  const url = MUSIC_LIST_URL + '?path=' + encodeURIComponent(currentMusicPath);
+  try {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error('list failed');
+    const data = await r.json();
+    if (!data.ok) throw new Error(data.error || 'list error');
+    renderMusicList(data.items || []);
+  } catch (_) {
+    document.getElementById('musicList').innerHTML = '<div class="empty">Ошибка загрузки списка</div>';
+  }
+}
+
+function renderMusicList(items) {
+  if (items) currentMusicItems = items;
+  items = currentMusicItems;
+  const list = document.getElementById('musicList');
+  const cnt = document.getElementById('musicCount');
+  const btnUp = document.getElementById('btnUp');
+
+  // Хлебные крошки
+  const breadcrumb = document.getElementById('musicBreadcrumb');
+  const parts = currentMusicPath ? currentMusicPath.split('/').filter(Boolean) : [];
+  let html = '<span class="crumb" onclick="loadMusicDir(\'\')">📁 Корень</span>';
+  let acc = '';
+  parts.forEach((p, i) => {
+    acc += (i > 0 ? '/' : '') + p;
+    html += `<span class="crumb-sep">/</span>`;
+    if (i === parts.length - 1) {
+      html += `<span class="crumb-current">${escHtml(p)}</span>`;
+    } else {
+      html += `<span class="crumb" onclick="loadMusicDir('${escHtml(acc)}')">${escHtml(p)}</span>`;
+    }
+  });
+  breadcrumb.innerHTML = html;
+
+  // Кнопка "Наверх"
+  btnUp.style.display = currentMusicPath ? 'inline-flex' : 'none';
+
+  cnt.textContent = items.length + ' элем.';
+
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty">Папка пуста</div>';
+    return;
+  }
+
+  list.innerHTML = items.map((item, i) => {
+    const isActive = currentMode === 'music' && currentMusicFile &&
+      currentMusicFile.path === (currentMusicPath ? currentMusicPath + '/' : '') + item.name;
+    if (item.type === 'dir') {
+      return `
+        <div class="music-item dir" onclick="musicOpenDir('${escHtml(item.name)}')">
+          <div class="music-icon">📁</div>
+          <div class="music-name">${escHtml(item.name)}</div>
+          <div class="music-size">папка</div>
+          <div class="music-play">▶</div>
+        </div>`;
+    } else {
+      const sizeStr = formatSize(item.size);
+      return `
+        <div class="music-item file ${isActive ? 'active' : ''}" onclick="playMusic('${escHtml(item.name)}')">
+          <div class="music-icon">🎵</div>
+          <div class="music-name">${escHtml(item.name)}</div>
+          <div class="music-size">${sizeStr}</div>
+          <div class="music-play">${isActive ? '♪' : '▶'}</div>
+        </div>`;
+    }
+  }).join('');
+}
+
+function formatSize(bytes) {
+  if (!bytes) return '—';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+}
+
+function musicOpenDir(name) {
+  const newPath = currentMusicPath ? currentMusicPath + '/' + name : name;
+  loadMusicDir(newPath);
+}
+
+function musicGoUp() {
+  const parts = currentMusicPath.split('/').filter(Boolean);
+  parts.pop();
+  loadMusicDir(parts.join('/'));
+}
+
+async function playMusic(name) {
+  const path = currentMusicPath ? currentMusicPath + '/' + name : name;
+  const file = { name, path };
+  currentMusicFile = file;
+  currentMode = 'music';
+  currentIdx = -1;
+  reconnectAttempts = 0;
+  isBuffering = true;
+  renderStations();
+  renderMusicList();
+  document.getElementById('npIcy').innerHTML = '';
+  audioEl.src = MUSIC_STREAM_URL + '?path=' + encodeURIComponent(path);
+  audioEl.volume = currentVol / 100;
+  updateStatus();
+  try {
+    await ensureAudioGraph();
+    audioEl.load();
+    await audioEl.play();
+    isBuffering = false;
+    startEqDraw();
+    startPlaybackTimer();
+  } catch (_) {
+    isBuffering = false;
+    updateStatus();
+  }
+  updateStatus();
+}
+
+// ── Init ────────────────────────────────────────────────
+renderVolBars(currentVol);
+clearEq();
+loadStations();
+updateStatus();
+initProgressBar();
+
+// Закрытие модальных окон по клику на оверлей
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      overlay.classList.remove('open');
+      if (overlay.id === 'pinModal') cancelPin();
+    }
+  });
+});
+
+// Закрытие модальных окон по клавише Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(overlay => {
+      overlay.classList.remove('open');
+      if (overlay.id === 'pinModal') cancelPin();
+    });
+  }
+});
+
+// Подтверждение PIN по клавише Enter
+document.getElementById('pinInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    confirmPin();
+  }
+});
+window.addEventListener('resize', () => { resizeCanvas(); if (audioEl.paused) clearEq(); });
+audioEl.addEventListener('play', () => {
+  isBuffering = false;
+  reconnectAttempts = 0;
+  updateStatus();
+});
+audioEl.addEventListener('loadedmetadata', updateProgress);
+audioEl.addEventListener('timeupdate', updateProgress);
+audioEl.addEventListener('progress', updateProgress);
+audioEl.addEventListener('canplay', () => {
+  isBuffering = false;
+  updateStatus();
+  updateProgress();
+});
+audioEl.addEventListener('playing', () => {
+  isBuffering = false;
+  updateStatus();
+});
+audioEl.addEventListener('pause', updateStatus);
+audioEl.addEventListener('waiting', () => {
+  isBuffering = true;
+  updateStatus();
+  updateProgress();
+});
+audioEl.addEventListener('stalled', scheduleReconnect);
+audioEl.addEventListener('error', scheduleReconnect);
+audioEl.addEventListener('ended', () => {
+  if (currentMode === 'music') {
+    // Автоматически перейти к следующему файлу
+    const items = document.querySelectorAll('#musicList .music-item.file');
+    const currentIdxInList = Array.from(items).findIndex(el => el.classList.contains('active'));
+    if (currentIdxInList >= 0 && currentIdxInList < items.length - 1) {
+      const next = items[currentIdxInList + 1];
+      const name = next.querySelector('.music-name').textContent;
+      playMusic(name);
+    } else {
+      stopPlayback();
+    }
+  } else {
+    stopPlayback();
+  }
+});
+setInterval(updateIcy, 12000);
+</script>
+</div>
+</body>
+</html>

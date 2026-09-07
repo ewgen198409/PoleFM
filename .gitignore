@@ -1,0 +1,22 @@
+# Секреты (не публиковать!)
+pin
+app/keystore.properties
+app/*.keystore
+app/*.jks
+
+# Локальная среда
+app/local.properties
+.vscode/
+.agents/
+.codex/
+
+# Сборка и кэши
+app/.gradle/
+app/build/
+app/app/build/
+*.apk
+*.aab
+
+# ОС
+.DS_Store
+Thumbs.db
