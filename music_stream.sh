@@ -1,7 +1,7 @@
 #!/bin/sh
 # Стриминг музыки с поддержкой Range запросов
 
-MUSIC_ROOT="/mnt/disk/Musick"
+MUSIC_ROOT="/mnt/nas/Musick"
 
 # Получаем путь из query string
 QUERY_STRING="${QUERY_STRING:-}"

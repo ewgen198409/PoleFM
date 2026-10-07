@@ -6,7 +6,7 @@ echo "Content-Type: application/json"
 echo "Cache-Control: no-store"
 echo
 
-MUSIC_ROOT="/mnt/disk/Musick"
+MUSIC_ROOT="/mnt/nas/Musick"
 
 # Получаем путь из query string
 QUERY_STRING="${QUERY_STRING:-}"
