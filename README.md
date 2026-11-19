@@ -52,44 +52,65 @@ CGI-скрипты рассчитаны на окружение вроде busyb
 
 > **Важно:** PIN-код хранится в файле **вне веб-корня** (см. комментарий в `save_stations.sh`) — иначе его можно скачать напрямую. В репозитории файла `pin` нет, он добавлен в `.gitignore`.
 
-## Android-приложение
+## Android TV-приложение
 
-- Загружает веб-интерфейс в `WebView`; внешние ссылки открываются в браузере
-- **Splash-экран** с логотипом и полосой загрузки (минимум 2,5 с, плавное затухание)
-- **Foreground-сервис**: уведомление с кнопкой «Стоп», воспроизведение не глушится системой
-- **Медиа-клавиши гарнитуры** (play/pause/stop) транслируются в веб-плеер
-- Кнопки громкости управляют потоком музыки (`STREAM_MUSIC`)
-- Поддержка загрузки файлов через веб-формы и выдача разрешений странице
-- `minSdk 21`, `targetSdk 34`, байткод Java 17
+Нативное приложение на **Kotlin + Jetpack Compose for TV** (`androidx.tv:tv-material`).
+Не WebView: приложение напрямую использует JSON API веб-сервера (`stations.json`,
+`save_stations.sh`, `nowplaying.php`, `music_list.sh`, `music_stream.sh`), но новый
+интерфейс полностью переработан под «10-foot UI» и управление пультом (D-pad без мыши).
+
+### Возможности
+
+- **Две вкладки**: «Онлайн радио» и «Моя музыка» (переключение по фокусу D-pad)
+- **Now Playing**: статус, название, бегущая ICY/RDS-строка (опрос раз в 12 с),
+  эквалайзер на **реальном спектре PCM** (Goertzel-анализ в `AudioProcessor` плеера,
+  работает и там, где недоступен системный `Visualizer`), Play/Pause/Stop
+- **Фокус**: стартует на кнопках Play/Pause и Stop; карточка Now Playing не перехватывает ОК
+- **Громкость**: внутренний ползунок 0–100 (стрелки влево/вправо, сохранение)
+  + аппаратные кнопки пульта управляют системным `STREAM_MUSIC`
+- **Станции**: воспроизведение с реконнектом; долгое нажатие ОК на карточке открывает
+  редактирование. Добавление/редактирование/удаление — под одним и тем же PIN
+  (экранная цифровая клавиатура и цифровые кнопки пульта)
+- **Недавно прослушанные**: горизонтальный ряд в приложении и канал «PoleFM —
+  недавно прослушанные» на главном экране Android TV; выбор программы открывает
+  приложение по deep-link `polefm://station?url=...` и сразу включает станцию
+- **Баннер лаунчера** `res/drawable/banner.png` с названием PoleFM
+- **Музыка**: файловый менеджер с breadcrumbs, перемотка, авто-next по списку папки
+- **Фон**: `MediaSessionService` с уведомлением, медиаклавиши пульта;
+  cleartext-трафик для HTTP-потоков станций включён (`usesCleartextTraffic`)
+- `minSdk 26`, `targetSdk 34`, JVM target 17
 
 ### Сборка
 
-Требования: JDK 21, Android SDK (platform 34, build-tools 35.0.0).
+Требования: JDK 17, Android SDK (platform 34, build-tools 34.0.0).
 
 ```bash
 cd app
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export ANDROID_HOME=$HOME/Android/Sdk
 ./gradlew assembleRelease
 ```
 
 Готовый APK: `app/app/build/outputs/apk/release/PoleFM.apk`.
 
-Установка на подключённое устройство:
+Установка на Android TV по ADB:
 
 ```bash
-adb install -r app/app/build/outputs/apk/release/PoleFM.apk
+adb connect 192.168.1.235:5555
+adb -s 192.168.1.235:5555 install -r app/app/build/outputs/apk/release/PoleFM.apk
+adb -s 192.168.1.235:5555 shell am start -n com.polefm.radio/.MainActivity
 ```
 
 ### Подпись
 
-Release-сборка подписывается ключом из `app/polefm-release.keystore`, параметры читаются из `app/keystore.properties`:
+Release подписывается новым ключом `app/polefm-release.keystore`; параметры —
+в `app/keystore.properties` (оба файла исключены из git через `app/.gitignore`).
 
 ```properties
 storeFile=polefm-release.keystore
 storePassword=...
-keyAlias=...
+keyAlias=polefm
 keyPassword=...
 ```
 
-Оба файла входят в репозиторий — проект хоббийный, ключ публичный.
-
-> ⚠️ **Внимание:** ключ подписи и пароли опубликованы. Любой может собрать APK с той же подписью. Для личного использования это не проблема, но если планируете распространять приложение через магазины — храните ключ приватно и не публикуйте его.
+> ⚠️ Для PKCS12-keystore пароль ключа должен совпадать с паролем хранилища.

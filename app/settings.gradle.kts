@@ -14,4 +14,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "PoleFM"
-include ':app'
+include(":app")
